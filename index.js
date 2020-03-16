@@ -494,7 +494,7 @@ export default {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
     defaultInstance.showNotification()
-  }
+  },
 
   optInTracking() {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
