@@ -348,6 +348,7 @@ RCT_EXPORT_METHOD(showNotification:(NSString *)apiToken
                   reject:(RCTPromiseRejectBlock)reject) {
     [[self getInstance:apiToken] showNotification];
     resolve(nil);
+}
 
 // Opt in/out tracking
 RCT_EXPORT_METHOD(optOutTracking:(NSString *)apiToken
