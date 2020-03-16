@@ -237,7 +237,6 @@ export class MixpanelInstance {
     return RNMixpanel.reset(this.apiToken)
   }
 
-<<<<<<< HEAD
   // show notifications on active
   showNotificationOnActive(show: boolean): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('showNotificationOnActive'))
@@ -251,15 +250,6 @@ export class MixpanelInstance {
     if (!this.initialized) throw new Error(uninitializedError('showNotification'))
 
     return RNMixpanel.showNotification(this.apiToken)
-=======
-  showInAppMessageIfAvailable(): Promise<void> {
-    if (!this.initialized) throw uninitializedError('showNotificationIfAvailable')
-
-    if (Platform.OS === "android") {
-        return RNMixpanel.showNotificationIfAvailable(this.apiToken)
-    } else {
-        return RNMixpanel.showNotification(this.apiToken)
-    }
   }
 
   optInTracking(): Promise<void> {
@@ -270,7 +260,6 @@ export class MixpanelInstance {
   optOutTracking(): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('optOutTracking'))
     return RNMixpanel.optOutTracking(this.apiToken)
->>>>>>> upstream/master
   }
 }
 
@@ -493,7 +482,6 @@ export default {
     defaultInstance.reset()
   },
 
-<<<<<<< HEAD
   // show notifications on active
   showNotificationOnActive(show: boolean) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
@@ -507,11 +495,6 @@ export default {
 
     defaultInstance.showNotification()
   }
-=======
-  showInAppMessageIfAvailable() {
-    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
-    defaultInstance.showInAppMessageIfAvailable(token)
-  },
 
   optInTracking() {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
@@ -524,5 +507,4 @@ export default {
 
     defaultInstance.optOutTracking()
   },
->>>>>>> upstream/master
 }
