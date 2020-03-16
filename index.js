@@ -1,6 +1,6 @@
 // @flow
 'use strict'
-import { NativeModules } from 'react-native'
+import { NativeModules, Platform } from 'react-native'
 const { RNMixpanel } = NativeModules
 
 /*
@@ -17,10 +17,18 @@ However since React Native makes no guarantees about whether native methods are 
 */
 export class MixpanelInstance {
   apiToken: ?string
+  optOutTrackingDefault: boolean
+  trackCrashes: boolean
+  automaticPushTracking: boolean
+  launchOptions: object
   initialized: boolean
 
-  constructor(apiToken: ?string) {
+  constructor(apiToken: ?string, optOutTrackingDefault: ?boolean = false, trackCrashes: ?boolean = true, automaticPushTracking: ?boolean = true, launchOptions: ?Object = null) {
     this.apiToken = apiToken
+    this.optOutTrackingDefault = optOutTrackingDefault
+    this.trackCrashes = trackCrashes
+    this.automaticPushTracking = automaticPushTracking
+    this.launchOptions = launchOptions
     this.initialized = false
   }
 
@@ -28,10 +36,17 @@ export class MixpanelInstance {
   Initializes the instance in native land.  Returns a promise that resolves when the instance has been created and is ready for use.
   */
   initialize(): Promise<void> {
-    return RNMixpanel.sharedInstanceWithToken(this.apiToken)
+    if (Platform.OS === 'ios'){
+      return RNMixpanel.sharedInstanceWithToken(this.apiToken, this.optOutTrackingDefault, this.trackCrashes, this.automaticPushTracking, this.launchOptions)
       .then(() => {
         this.initialized = true
       })
+    } else {
+      return RNMixpanel.sharedInstanceWithToken(this.apiToken, this.optOutTrackingDefault)
+      .then(() => {
+        this.initialized = true
+      })
+    }
   }
 
   /*
@@ -45,11 +60,22 @@ export class MixpanelInstance {
   }
 
   /*
+  Retrieves current Firebase Cloud Messaging token.
+  */
+ getPushRegistrationId(): Promise<string> {
+    if (!this.initialized) {
+      return Promise.reject(new Error(uninitializedError('getPushRegistrationId')))
+    }
+    if (!RNMixpanel.getPushRegistrationId) throw new Error('No native implementation for getPushRegistrationId.  This is Android only.')
+    return RNMixpanel.getPushRegistrationId(this.apiToken)
+  }
+
+  /*
   Gets the given super property.  Returns a promise that resolves to the value.
   */
   getSuperProperty(propertyName: string): Promise<mixed> {
     if (!this.initialized) {
-      return Promise.reject(new Error(uninitializedError('getDistinctId')))
+      return Promise.reject(new Error(uninitializedError('getSuperProperty')))
     }
     return RNMixpanel.getSuperProperty(propertyName, this.apiToken)
   }
@@ -76,16 +102,28 @@ export class MixpanelInstance {
     return RNMixpanel.disableIpAddressGeolocalization(this.apiToken)
   }
 
-  alias(alias: string): Promise<void> {
+  alias(alias: string, oldDistinctID?: string): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('createAlias'))
 
-    return RNMixpanel.createAlias(alias, this.apiToken)
+    return RNMixpanel.createAlias(alias, oldDistinctID, this.apiToken)
   }
 
   identify(userId: string): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('identify'))
 
     return RNMixpanel.identify(userId, this.apiToken)
+  }
+
+  addGroup(groupKey: string, groupId: string): Promise<void> {
+    if (!this.initialized) throw new Error(uninitializedError('addGroup'))
+
+    return RNMixpanel.addGroup(groupKey, groupId, this.apiToken)
+  }
+
+  setGroup(groupKey: string, groupId: string): Promise<void> {
+      if (!this.initialized) throw new Error(uninitializedError('setGroup'))
+
+      return RNMixpanel.setGroup(groupKey, groupId, this.apiToken)
   }
 
   timeEvent(event: string): Promise<void> {
@@ -104,6 +142,11 @@ export class MixpanelInstance {
     if (!this.initialized) throw new Error(uninitializedError('registerSuperPropertiesOnce'))
 
     return RNMixpanel.registerSuperPropertiesOnce(properties, this.apiToken)
+  }
+
+  clearSuperProperties(): Promise<void> {
+    if (!this.initialized) throw new Error(uninitializedError('clearSuperProperties'))
+    return RNMixpanel.clearSuperProperties(this.apiToken)
   }
 
   initPushHandling(token: string): Promise<void> {
@@ -148,10 +191,16 @@ export class MixpanelInstance {
     return RNMixpanel.union(name, properties, this.apiToken)
   }
 
-  removePushDeviceToken(deviceToken: Object): Promise<void> {
+  append(name: string, properties: any[]): Promise<void> {
+    if (!this.initialized) throw new Error(uninitializedError('append'))
+
+    return RNMixpanel.append(name, properties, this.apiToken)
+  }
+
+  removePushDeviceToken(pushDeviceToken: string): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('removePushDeviceToken'))
 
-    return RNMixpanel.removePushDeviceToken(deviceToken, this.apiToken)
+    return RNMixpanel.removePushDeviceToken(pushDeviceToken, this.apiToken)
   }
 
   removeAllPushDeviceTokens(): Promise<void> {
@@ -175,11 +224,11 @@ export class MixpanelInstance {
   }
 
   // android only
-  clearPushRegistrationId(): Promise<void> {
+  clearPushRegistrationId(token?: string): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('clearPushRegistrationId'))
 
     if (!RNMixpanel.clearPushRegistrationId) throw new Error('No native implementation for setPusclearPushRegistrationIdhRegistrationId.  This is Android only.')
-    return RNMixpanel.clearPushRegistrationId()
+    return RNMixpanel.clearPushRegistrationId(token, this.apiToken)
   }
 
   reset(): Promise<void> {
@@ -188,6 +237,7 @@ export class MixpanelInstance {
     return RNMixpanel.reset(this.apiToken)
   }
 
+<<<<<<< HEAD
   // show notifications on active
   showNotificationOnActive(show: boolean): Promise<void> {
     if (!this.initialized) throw new Error(uninitializedError('showNotificationOnActive'))
@@ -201,6 +251,26 @@ export class MixpanelInstance {
     if (!this.initialized) throw new Error(uninitializedError('showNotification'))
 
     return RNMixpanel.showNotification(this.apiToken)
+=======
+  showInAppMessageIfAvailable(): Promise<void> {
+    if (!this.initialized) throw uninitializedError('showNotificationIfAvailable')
+
+    if (Platform.OS === "android") {
+        return RNMixpanel.showNotificationIfAvailable(this.apiToken)
+    } else {
+        return RNMixpanel.showNotification(this.apiToken)
+    }
+  }
+
+  optInTracking(): Promise<void> {
+    if (!this.initialized) throw new Error(uninitializedError('optInTracking'))
+    return RNMixpanel.optInTracking(this.apiToken)
+  }
+
+  optOutTracking(): Promise<void> {
+    if (!this.initialized) throw new Error(uninitializedError('optOutTracking'))
+    return RNMixpanel.optOutTracking(this.apiToken)
+>>>>>>> upstream/master
   }
 }
 
@@ -214,8 +284,8 @@ mixpanel.track('my event')
 */
 export default {
 
-  sharedInstanceWithToken(apiToken: string): Promise<void> {
-    const instance = new MixpanelInstance(apiToken)
+  sharedInstanceWithToken(apiToken: string, optOutTrackingDefault: ?boolean = false, trackCrashes: ?boolean = true, automaticPushTracking: ?boolean = true, launchOptions: ?Object = null): Promise<void> {
+    const instance = new MixpanelInstance(apiToken, optOutTrackingDefault)
     if (!defaultInstance) defaultInstance = instance
     return instance.initialize()
   },
@@ -232,6 +302,22 @@ export default {
       })
       .catch((err) => {
         console.error('Error in mixpanel getDistinctId', err)
+        callback(null)
+      })
+  },
+
+  /*
+  Retrieves current Firebase Cloud Messaging token.
+  */
+  getPushRegistrationId(callback: (token: ?string) => void) {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.getPushRegistrationId()
+      .then((token: string) => {
+        callback(token)
+      })
+      .catch((err) => {
+        console.error('Error in mixpanel getPushRegistrationId', err)
         callback(null)
       })
   },
@@ -273,16 +359,28 @@ export default {
       defaultInstance.disableIpAddressGeolocalization()
   },
 
-  createAlias(alias: string) {
+  createAlias(alias: string, oldDistinctID: ?string = null) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
-    defaultInstance.alias(alias)
+    defaultInstance.alias(alias, oldDistinctID)
   },
 
   identify(userId: string) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
     defaultInstance.identify(userId)
+  },
+
+  addGroup(groupKey: string, groupId: string) {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.addGroup(groupKey, groupId)
+  },
+
+  setGroup(groupKey: string, groupId: string) {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.setGroup(groupKey, groupId)
   },
 
   timeEvent(event: string) {
@@ -303,6 +401,12 @@ export default {
     defaultInstance.registerSuperPropertiesOnce(properties)
   },
 
+  clearSuperProperties() {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.clearSuperProperties()
+  },
+
   initPushHandling(token: string) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
@@ -321,10 +425,10 @@ export default {
     defaultInstance.setOnce(properties)
   },
 
-  removePushDeviceToken(deviceToken: Object) {
+  removePushDeviceToken(pushDeviceToken: string) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
-    defaultInstance.removePushDeviceToken(deviceToken)
+    defaultInstance.removePushDeviceToken(pushDeviceToken)
   },
 
   removeAllPushDeviceTokens() {
@@ -357,6 +461,12 @@ export default {
     defaultInstance.union(name, properties)
   },
 
+  append(name: string, properties: any[]) {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.append(name, properties)
+  },
+
   addPushDeviceToken(token: string) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
@@ -371,10 +481,10 @@ export default {
   },
 
   // android only
-  clearPushRegistrationId() {
+  clearPushRegistrationId(token?: string) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
 
-    defaultInstance.clearPushRegistrationId()
+    defaultInstance.clearPushRegistrationId(token)
   },
 
   reset() {
@@ -383,6 +493,7 @@ export default {
     defaultInstance.reset()
   },
 
+<<<<<<< HEAD
   // show notifications on active
   showNotificationOnActive(show: boolean) {
     if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
@@ -396,4 +507,22 @@ export default {
 
     defaultInstance.showNotification()
   }
+=======
+  showInAppMessageIfAvailable() {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+    defaultInstance.showInAppMessageIfAvailable(token)
+  },
+
+  optInTracking() {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.optInTracking()
+  },
+
+  optOutTracking() {
+    if (!defaultInstance) throw new Error(NO_INSTANCE_ERROR)
+
+    defaultInstance.optOutTracking()
+  },
+>>>>>>> upstream/master
 }
